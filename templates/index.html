@@ -1,1 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Zero Trust — Adaptive Zero Trust Architecture</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',sans-serif;background:#f0f4ff;min-height:100vh;display:flex}
 
+  /* SIDEBAR */
+  #sidebar{
+    width:220px;min-width:220px;
+    background:linear-gradient(180deg,#2563eb 0%,#7c3aed 100%);
+    display:none;flex-direction:column;
+    position:fixed;top:0;left:0;height:100vh;z-index:100;
+  }
+  .sidebar-logo{display:flex;align-items:center;gap:10px;padding:22px 18px 16px;color:#fff;font-size:18px;font-weight:700}
+  .sidebar-logo svg{width:28px;height:28px;flex-shrink:0}
+  .sidebar-close{display:none;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;margin-left:auto}
+  .nav-item{
+    display:flex;align-items:center;gap:12px;padding:13px 18px;
+    color:rgba(255,255,255,.85);cursor:pointer;font-size:14.5px;transition:background .2s;
+  }
+  .nav-item:hover{background:rgba(255,255,255,.15)}
+  .nav-item.active{background:rgba(255,255,255,.25);color:#fff;font-weight:600}
+  .nav-item svg{width:20px;height:20px;flex-shrink:0}
+  .sidebar-bottom{margin-top:auto;padding:16px}
+  .logout-btn{
+    width:100%;padding:10px;border:none;border-radius:8px;
+    background:rgba(255,255,255,.2);color:#fff;font-size:14px;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .logout-btn:hover{background:rgba(255,255,255,.3)}
+
+  /* MAIN */
+  #main{margin-left:220px;flex:1;min-height:100vh;display:none}
+  .topbar{
+    display:flex;align-items:center;gap:14px;padding:14px 24px;
+    background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.08);
+    position:sticky;top:0;z-index:50;
+  }
+  .menu-btn{background:none;border:none;cursor:pointer;font-size:22px;color:#374151;display:none}
+  .page-title-top{font-size:20px;font-weight:700;color:#111}
+  .content{padding:24px}
+
+  /* AUTH */
+  #auth-page{
+    display:flex;flex-direction:column;align-items:center;
+    justify-content:center;min-height:100vh;background:#f0f4ff;width:100%;
+  }
+  .auth-logo{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:28px}
+  .shield-wrap{
+    width:70px;height:70px;border-radius:18px;
+    background:linear-gradient(135deg,#2563eb,#7c3aed);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .shield-wrap svg{width:38px;height:38px;color:#fff}
+  .auth-logo h1{font-size:28px;font-weight:800;color:#111}
+  .auth-logo p{font-size:14px;color:#6b7280}
+  .auth-card{background:#fff;border-radius:16px;padding:28px;width:100%;max-width:380px;box-shadow:0 4px 24px rgba(0,0,0,.10)}
+  .auth-tabs{display:flex;border-radius:8px;overflow:hidden;margin-bottom:20px}
+  .auth-tab{
+    flex:1;padding:10px;text-align:center;cursor:pointer;font-weight:600;font-size:15px;
+    background:#f3f4f6;color:#6b7280;border:none;transition:.2s;
+  }
+  .auth-tab.active{background:linear-gradient(90deg,#2563eb,#7c3aed);color:#fff}
+  .form-group{margin-bottom:16px}
+  .form-group label{display:block;margin-bottom:6px;font-size:14px;color:#374151;font-weight:500}
+  .form-group input,.form-group select{
+    width:100%;padding:11px 13px;border:1.5px solid #e5e7eb;
+    border-radius:8px;font-size:14px;outline:none;transition:.2s;
+  }
+  .form-group input:focus,.form-group select:focus{border-color:#2563eb}
+  .submit-btn{
+    width:100%;padding:13px;border:none;border-radius:10px;
+    background:linear-gradient(90deg,#2563eb,#7c3aed);
+    color:#fff;font-size:16px;font-weight:700;cursor:pointer;margin-top:4px;
+  }
+  .submit-btn:hover{opacity:.92}
+  .auth-error{color:#ef4444;font-size:13px;margin-top:10px;text-align:center;min-height:20px}
+  .auth-success{color:#10b981;font-size:13px;margin-top:10px;text-align:center}
+
+  /* DASHBOARD CARDS */
+  .dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px}
+  .dash-card{background:#fff;border-radius:14px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.07)}
+  .dash-card .card-icon{font-size:26px;margin-bottom:6px}
+  .dash-card .card-value{font-size:32px;font-weight:800}
+  .dash-card .card-label{font-size:13px;color:#6b7280;margin-top:4px}
+  .score-val{color:#10b981}
+  .req-val{color:#2563eb}
+  .approved-val{color:#10b981}
+
+  /* ABOUT CARD */
+  .about-card{background:#fff;border-radius:14px;padding:22px;box-shadow:0 2px 10px rgba(0,0,0,.07)}
+  .about-card h3{font-size:18px;font-weight:700;margin-bottom:10px;color:#111}
+  .about-card p{font-size:13.5px;color:#4b5563;line-height:1.6;margin-bottom:14px}
+  .feature-list{list-style:none;display:flex;flex-direction:column;gap:8px}
+  .feature-list li{display:flex;align-items:flex-start;gap:10px;font-size:13.5px;color:#374151}
+  .feature-list li .check{color:#10b981;font-size:16px}
+
+  /* PAGE HEADING */
+  .page-heading{font-size:26px;font-weight:800;color:#111;margin-bottom:20px}
+
+  /* TRUST SCORE */
+  .trust-card{background:#fff;border-radius:14px;padding:28px;box-shadow:0 2px 10px rgba(0,0,0,.07);margin-bottom:18px;text-align:center}
+  .trust-big{font-size:64px;font-weight:900;line-height:1}
+  .trust-sub{font-size:14px;color:#6b7280;margin-top:6px}
+  .factors-card{background:#fff;border-radius:14px;padding:22px;box-shadow:0 2px 10px rgba(0,0,0,.07);margin-bottom:18px}
+  .factors-card h3{font-size:16px;font-weight:700;margin-bottom:14px;color:#111}
+  .factor-row{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid #f3f4f6;font-size:14px}
+  .factor-row:last-child{border-bottom:none}
+  .factor-row .label{color:#374151}
+  .val{font-weight:700;font-size:15px}
+  .val.pos{color:#10b981}
+  .val.neg{color:#ef4444}
+  .tips-card{background:#eff6ff;border-radius:14px;padding:20px}
+  .tips-card h3{font-size:14px;font-weight:700;color:#1d4ed8;margin-bottom:10px}
+  .tips-card ul{list-style:none;display:flex;flex-direction:column;gap:6px}
+  .tips-card ul li{font-size:13px;color:#1d4ed8}
+
+  /* RESOURCES */
+  .resources-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px}
+  .resource-card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,.07)}
+  .resource-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+  .resource-name{font-size:15px;font-weight:700;color:#111}
+  .badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase}
+  .badge-low{background:#d1fae5;color:#065f46}
+  .badge-medium{background:#fef3c7;color:#92400e}
+  .badge-high{background:#fee2e2;color:#991b1b}
+  .badge-critical{background:#fce7f3;color:#9d174d}
+  .resource-desc{font-size:13px;color:#6b7280;margin-bottom:12px}
+  .resource-footer{display:flex;justify-content:space-between;align-items:center}
+  .min-score{font-size:12px;color:#9ca3af}
+  .access-btn{padding:7px 14px;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer}
+  .btn-access{background:#2563eb;color:#fff}
+  .btn-access:hover{background:#1d4ed8}
+  .btn-locked{background:#f3f4f6;color:#9ca3af;cursor:not-allowed}
+
+  /* TABLE */
+  .table-wrap{background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.07);overflow:auto}
+  table{width:100%;border-collapse:collapse;min-width:500px}
+  thead tr{background:#f9fafb}
+  th{padding:13px 16px;text-align:left;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px}
+  td{padding:13px 16px;font-size:14px;color:#374151;border-top:1px solid #f3f4f6}
+  .badge-pending{background:#fef3c7;color:#92400e}
+  .badge-approved{background:#d1fae5;color:#065f46}
+  .badge-rejected{background:#fee2e2;color:#991b1b}
+  .badge-low-risk{background:#d1fae5;color:#065f46}
+  .badge-medium-risk{background:#fef3c7;color:#92400e}
+  .badge-high-risk{background:#fee2e2;color:#991b1b}
+  .review-btn{padding:5px 12px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;margin-right:4px}
+  .btn-approve{background:#10b981;color:#fff}
+  .btn-reject{background:#ef4444;color:#fff}
+  .empty-state{text-align:center;color:#9ca3af;padding:48px 20px;font-size:15px}
+
+  /* TOAST */
+  #toast{
+    position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+    background:#1f2937;color:#fff;padding:11px 24px;border-radius:30px;
+    font-size:14px;font-weight:500;z-index:9999;opacity:0;
+    transition:opacity .3s;pointer-events:none;white-space:nowrap;
+  }
+  #toast.show{opacity:1}
+
+  /* RESPONSIVE */
+  @media(max-width:700px){
+    #sidebar{transform:translateX(-100%);display:flex !important}
+    #sidebar.open{transform:translateX(0)}
+    #main{margin-left:0}
+    .menu-btn,.sidebar-close{display:block}
+  }
+</style>
+</head>
+<body>
+
+<!-- AUTH PAGE -->
+<div id="auth-page">
+  <div class="auth-logo">
+    <div class="shield-wrap">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+      </svg>
+    </div>
+    <h1>Zero Trust</h1>
+    <p>Adaptive Zero Trust Architecture</p>
+  </div>
+
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">Login</button>
+      <button class="auth-tab" onclick="switchTab('register')">Register</button>
+    </div>
+
+    <!-- Login -->
+    <div id="login-form">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="your@email.com"/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••"
+          onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+      <button class="submit-btn" onclick="doLogin()">Login</button>
+      <div class="auth-error" id="login-error"></div>
+    </div>
+
+    <!-- Register -->
+    <div id="register-form" style="display:none">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="your@email.com"/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="reg-password" placeholder="••••••••"/>
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select id="reg-role">
+          <option value="user">User</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <button class="submit-btn" onclick="doRegister()">Register</button>
+      <div class="auth-error" id="reg-error"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sidebar-logo">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round"
+        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+    </svg>
+    Zero Trust
+    <button class="sidebar-close" onclick="closeSidebar()">✕</button>
+  </div>
+  <nav>
+    <div class="nav-item active" onclick="navigate('dashboard')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+      </svg>
+      Dashboard
+    </div>
+    <div class="nav-item" onclick="navigate('trust-score')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+      </svg>
+      Trust Score
+    </div>
+    <div class="nav-item" onclick="navigate('resources')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+      </svg>
+      Resources
+    </div>
+    <div class="nav-item" onclick="navigate('access-requests')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      Access Requests
+    </div>
+    <div class="nav-item" onclick="navigate('activity-logs')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M13 10V3L4 14h7v7l9-11h-7z"/>
+      </svg>
+      Activity Logs
+    </div>
+    <div class="nav-item" id="admin-nav" style="display:none" onclick="navigate('admin')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+      </svg>
+      Admin Panel
+    </div>
+  </nav>
+  <div class="sidebar-bottom">
+    <button class="logout-btn" onclick="doLogout()">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+      </svg>
+      Logout
+    </button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div class="topbar">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <span class="page-title-top" id="topbar-title">Dashboard</span>
+  </div>
+  <div class="content" id="page-content"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── All API calls use relative URLs — no CORS issue ──
+const API = "/api";
+let currentUser = null;
+
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2800);
+}
+
+async function api(path, method="GET", body=null) {
+  const opts = {
+    method,
+    credentials: "include",
+    headers: {"Content-Type":"application/json"}
+  };
+  if (body) opts.body = JSON.stringify(body);
+  try {
+    const res = await fetch(API + path, opts);
+    return await res.json();
+  } catch(e) {
+    return { error: "Cannot connect to server. Make sure Flask is running." };
+  }
+}
+
+function showApp() {
+  document.getElementById("auth-page").style.display = "none";
+  document.getElementById("sidebar").style.display   = "flex";
+  document.getElementById("main").style.display      = "block";
+  if (currentUser?.role === "admin") {
+    document.getElementById("admin-nav").style.display = "flex";
+  }
+}
+
+function showAuth() {
+  document.getElementById("auth-page").style.display = "flex";
+  document.getElementById("sidebar").style.display   = "none";
+  document.getElementById("main").style.display      = "none";
+}
+
+// ── AUTH ──
+function switchTab(tab) {
+  document.getElementById("login-form").style.display    = tab==="login"    ? "block" : "none";
+  document.getElementById("register-form").style.display = tab==="register" ? "block" : "none";
+  document.querySelectorAll(".auth-tab").forEach((el,i) => {
+    el.classList.toggle("active", (tab==="login"&&i===0)||(tab==="register"&&i===1));
+  });
+  document.getElementById("login-error").textContent = "";
+  document.getElementById("reg-error").textContent = "";
+}
+
+async function doLogin() {
+  const email    = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value.trim();
+  const errEl    = document.getElementById("login-error");
+  errEl.textContent = "";
+  if (!email || !password) { errEl.textContent = "Please fill all fields."; return; }
+  const data = await api("/login", "POST", {email, password});
+  if (data.error) { errEl.textContent = data.error; return; }
+  currentUser = data.user;
+  showApp();
+  navigate("dashboard");
+}
+
+async function doRegister() {
+  const email    = document.getElementById("reg-email").value.trim();
+  const password = document.getElementById("reg-password").value.trim();
+  const role     = document.getElementById("reg-role").value;
+  const errEl    = document.getElementById("reg-error");
+  errEl.textContent = "";
+  if (!email || !password) { errEl.textContent = "Please fill all fields."; return; }
+  const data = await api("/register", "POST", {email, password, role});
+  if (data.error) { errEl.textContent = data.error; return; }
+  errEl.style.color = "#10b981";
+  errEl.textContent = "Registered! Please login.";
+  setTimeout(() => {
+    errEl.style.color = "#ef4444";
+    errEl.textContent = "";
+    switchTab("login");
+  }, 1500);
+}
+
+async function doLogout() {
+  await api("/logout", "POST");
+  currentUser = null;
+  showAuth();
+}
+
+// ── NAVIGATION ──
+function navigate(page) {
+  document.querySelectorAll(".nav-item").forEach(el => el.classList.remove("active"));
+  const map = {dashboard:0,"trust-score":1,resources:2,"access-requests":3,"activity-logs":4,admin:5};
+  const items = document.querySelectorAll(".nav-item");
+  if (items[map[page]]) items[map[page]].classList.add("active");
+  const titles = {
+    dashboard:"Dashboard","trust-score":"Trust Score Analysis",
+    resources:"Resources","access-requests":"Access Requests",
+    "activity-logs":"Activity Logs",admin:"Admin Panel"
+  };
+  document.getElementById("topbar-title").textContent = titles[page] || "";
+  closeSidebar();
+  renderPage(page);
+}
+
+async function renderPage(page) {
+  const el = document.getElementById("page-content");
+  el.innerHTML = `<div style="color:#9ca3af;text-align:center;padding:40px;font-size:16px">Loading…</div>`;
+  if (page==="dashboard")          await renderDashboard(el);
+  else if (page==="trust-score")   await renderTrustScore(el);
+  else if (page==="resources")     await renderResources(el);
+  else if (page==="access-requests") await renderAccessRequests(el);
+  else if (page==="activity-logs") await renderActivityLogs(el);
+  else if (page==="admin")         await renderAdmin(el);
+}
+
+// ── DASHBOARD ──
+async function renderDashboard(el) {
+  const d = await api("/dashboard");
+  if (d.error) { el.innerHTML=`<p style="color:red">${d.error}</p>`; return; }
+  el.innerHTML = `
+    <h1 class="page-heading">Dashboard</h1>
+    <div class="dash-grid">
+      <div class="dash-card">
+        <div class="card-icon">🛡️</div>
+        <div class="card-value score-val">${d.trust_score}</div>
+        <div class="card-label">Trust Score</div>
+      </div>
+      <div class="dash-card">
+        <div class="card-icon">📄</div>
+        <div class="card-value req-val">${d.my_requests}</div>
+        <div class="card-label">My Requests</div>
+      </div>
+      <div class="dash-card">
+        <div class="card-icon">✅</div>
+        <div class="card-value approved-val">${d.approved_access}</div>
+        <div class="card-label">Approved Access</div>
+      </div>
+    </div>
+    <div class="about-card">
+      <h3>About Zero Trust Architecture</h3>
+      <p>This system implements an Adaptive Zero Trust Architecture that continuously verifies users and dynamically controls access based on risk evaluation.</p>
+      <ul class="feature-list">
+        <li><span class="check">✅</span> Dynamic trust scoring based on behavior patterns</li>
+        <li><span class="check">✅</span> Policy-based access control with automated decisions</li>
+        <li><span class="check">✅</span> Micro-segmentation of resources by sensitivity level</li>
+        <li><span class="check">✅</span> Continuous monitoring and anomaly detection</li>
+        <li><span class="check">✅</span> Risk-based access adjustment in real-time</li>
+      </ul>
+    </div>`;
+}
+
+// ── TRUST SCORE ──
+async function renderTrustScore(el) {
+  const d = await api("/trust-score");
+  if (d.error) { el.innerHTML=`<p style="color:red">${d.error}</p>`; return; }
+  const f = d.factors;
+  const color = d.score>=80?"#10b981":d.score>=50?"#f59e0b":"#ef4444";
+  el.innerHTML = `
+    <h1 class="page-heading">Trust Score Analysis</h1>
+    <div class="trust-card">
+      <div class="trust-big" style="color:${color}">${d.score}</div>
+      <div class="trust-sub">Current Trust Score</div>
+    </div>
+    <div class="factors-card">
+      <h3>Score Factors</h3>
+      <div class="factor-row">
+        <span class="label">Failed Login Attempts</span>
+        <span class="val ${f.failed_logins<0?'neg':'pos'}">${f.failed_logins>=0?'+':''}${f.failed_logins.toFixed(1)}</span>
+      </div>
+      <div class="factor-row">
+        <span class="label">Account Age</span>
+        <span class="val pos">+${f.account_age.toFixed(1)}</span>
+      </div>
+      <div class="factor-row">
+        <span class="label">Recent High Risk Actions</span>
+        <span class="val ${f.high_risk_actions<0?'neg':'pos'}">${f.high_risk_actions>=0?'+':''}${f.high_risk_actions.toFixed(1)}</span>
+      </div>
+      <div class="factor-row">
+        <span class="label">Denied Requests</span>
+        <span class="val ${f.denied_requests<0?'neg':'pos'}">${f.denied_requests>=0?'+':''}${f.denied_requests.toFixed(1)}</span>
+      </div>
+    </div>
+    <div class="tips-card">
+      <h3>How to improve your score:</h3>
+      <ul>
+        <li>• Maintain successful login attempts</li>
+        <li>• Avoid high-risk activities</li>
+        <li>• Follow security best practices</li>
+        <li>• Build trust over time with consistent behavior</li>
+      </ul>
+    </div>`;
+}
+
+// ── RESOURCES ──
+async function renderResources(el) {
+  const data = await api("/resources");
+  if (data.error) { el.innerHTML=`<p style="color:red">${data.error}</p>`; return; }
+  const cards = data.map(r=>`
+    <div class="resource-card">
+      <div class="resource-header">
+        <div class="resource-name">${r.name}</div>
+        <span class="badge badge-${r.sensitivity}">${r.sensitivity}</span>
+      </div>
+      <div class="resource-desc">${r.description}</div>
+      <div class="resource-footer">
+        <span class="min-score">Min score: ${r.min_trust_score}</span>
+        ${r.accessible
+          ? `<button class="access-btn btn-access" onclick="requestAccess(${r.id})">Request Access</button>`
+          : `<button class="access-btn btn-locked" disabled>🔒 Locked</button>`}
+      </div>
+    </div>`).join("");
+  el.innerHTML = `<h1 class="page-heading">Resources</h1><div class="resources-grid">${cards}</div>`;
+}
+
+async function requestAccess(resource_id) {
+  const d = await api("/access-requests","POST",{resource_id});
+  toast(d.message || "Request submitted");
+  renderPage("resources");
+}
+
+// ── ACCESS REQUESTS ──
+async function renderAccessRequests(el) {
+  const data = await api("/access-requests");
+  if (data.error) { el.innerHTML=`<p style="color:red">${data.error}</p>`; return; }
+  const isAdmin = currentUser?.role==="admin";
+  const rows = data.length===0
+    ? `<tr><td colspan="5" class="empty-state">No requests yet</td></tr>`
+    : data.map(r=>`
+      <tr>
+        ${isAdmin?`<td>${r.email||''}</td>`:''}
+        <td>${r.resource_name}</td>
+        <td><span class="badge badge-${r.status}">${r.status}</span></td>
+        <td>${r.requested_at}</td>
+        <td>${isAdmin&&r.status==='pending'
+          ?`<button class="review-btn btn-approve" onclick="reviewReq(${r.id},'approved')">Approve</button>
+            <button class="review-btn btn-reject" onclick="reviewReq(${r.id},'rejected')">Reject</button>`
+          : r.reviewed_at||'—'}</td>
+      </tr>`).join("");
+  el.innerHTML = `
+    <h1 class="page-heading">Access Requests</h1>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          ${isAdmin?'<th>User</th>':''}
+          <th>Resource</th><th>Status</th><th>Requested At</th><th>Action</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+async function reviewReq(id,status) {
+  const d = await api(`/access-requests/${id}`,"PATCH",{status});
+  toast(d.message||"Updated");
+  renderPage("access-requests");
+}
+
+// ── ACTIVITY LOGS ──
+async function renderActivityLogs(el) {
+  const data = await api("/activity-logs");
+  if (data.error) { el.innerHTML=`<p style="color:red">${data.error}</p>`; return; }
+  const isAdmin = currentUser?.role==="admin";
+  const rows = data.length===0
+    ? `<tr><td colspan="4" class="empty-state">No activity yet</td></tr>`
+    : data.map(r=>`
+      <tr>
+        ${isAdmin?`<td>${r.email||''}</td>`:''}
+        <td>${r.action}</td>
+        <td><span class="badge badge-${r.risk_level}-risk">${r.risk_level}</span></td>
+        <td>${r.timestamp}</td>
+      </tr>`).join("");
+  el.innerHTML = `
+    <h1 class="page-heading">Activity Logs</h1>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          ${isAdmin?'<th>User</th>':''}
+          <th>Action</th><th>Risk Level</th><th>Timestamp</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+// ── ADMIN ──
+async function renderAdmin(el) {
+  const users = await api("/admin/users");
+  if (users.error) { el.innerHTML=`<p style="color:red">${users.error}</p>`; return; }
+  const rows = users.map(u=>`
+    <tr>
+      <td>${u.email}</td>
+      <td><span class="badge ${u.role==='admin'?'badge-high':'badge-low'}">${u.role}</span></td>
+      <td style="font-weight:700;color:${u.trust_score>=80?'#10b981':u.trust_score>=50?'#f59e0b':'#ef4444'}">${u.trust_score}</td>
+      <td>${u.created_at}</td>
+    </tr>`).join("");
+  el.innerHTML = `
+    <h1 class="page-heading">Admin Panel</h1>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Email</th><th>Role</th><th>Trust Score</th><th>Registered</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+// ── SIDEBAR ──
+function toggleSidebar(){ document.getElementById("sidebar").classList.toggle("open"); }
+function closeSidebar()  { document.getElementById("sidebar").classList.remove("open"); }
+
+// ── INIT ──
+(async()=>{
+  const me = await api("/me");
+  if (me.id) {
+    currentUser = me;
+    showApp();
+    navigate("dashboard");
+  } else {
+    showAuth();
+  }
+})();
+</script>
+</body>
+</html>
