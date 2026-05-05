@@ -1,0 +1,77 @@
+# Adaptive Zero Trust Architecture
+### Full Stack Project — Flask + HTML/CSS/JS
+
+---
+
+## Project Structure
+
+```
+zerotrust/
+├── app.py              ← Flask backend (API)
+├── requirements.txt    ← Python dependencies
+├── zerotrust.db        ← SQLite database (auto-created)
+└── templates/
+    └── index.html      ← Frontend (HTML/CSS/JS)
+```
+
+---
+
+## Setup & Run
+
+### Step 1 — Install Python dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### Step 2 — Run the Flask backend
+```bash
+python app.py
+```
+Backend runs at: **http://localhost:5000**
+
+### Step 3 — Open the frontend
+Open `templates/index.html` directly in your browser.
+*(Or serve it via Live Server in VS Code)*
+
+---
+
+## Features
+
+| Feature | Description |
+|---|---|
+| Register / Login | Email + Password with User / Admin roles |
+| Trust Score | Dynamic score based on behavior (0–100) |
+| Score Factors | Failed logins, Account age, High-risk actions, Denied requests |
+| Resources | 6 resources with sensitivity levels (low/medium/high/critical) |
+| Access Requests | Users request access; auto-approved if trust score meets minimum |
+| Activity Logs | Every action logged with risk level and timestamp |
+| Admin Panel | View all users, trust scores, approve/reject requests |
+
+---
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | /api/register | Register new user |
+| POST | /api/login | Login |
+| POST | /api/logout | Logout |
+| GET | /api/me | Get current user |
+| GET | /api/dashboard | Dashboard stats |
+| GET | /api/trust-score | Trust score + factors |
+| GET | /api/resources | All resources with access flag |
+| GET/POST | /api/access-requests | List / Create access requests |
+| PATCH | /api/access-requests/<id> | Admin: Approve/Reject |
+| GET | /api/activity-logs | Activity logs |
+| GET | /api/admin/users | Admin: All users with scores |
+
+---
+
+## Team
+- R Manogna (160623737108)
+- N Uma (160623737097)
+- A Rashmitha (160623737070)
+
+**Supervisor:** Mrs. Sumayya Fatima  
+**College:** Stanley College of Engineering and Technology for Women (Autonomous)  
+**Dept:** Information Technology | B.E. IT VI Semester
